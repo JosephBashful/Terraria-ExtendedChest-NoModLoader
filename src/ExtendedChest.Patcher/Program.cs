@@ -42,6 +42,20 @@ void AtReturn(MethodDefinition method, Func<Instruction[]> create)
     }
 }
 Instruction Call(string name) => Instruction.Create(OpCodes.Call, Hook(name));
+// XNA requires a relative Content URI. The hook first restores the process working directory
+// to the patched executable's directory, then returns the original relative root name.
+var mainConstructor = Method("Terraria.Main", ".ctor", 0);
+var contentRootLiteral = mainConstructor.Body.Instructions.Single(i =>
+    i.OpCode == OpCodes.Ldstr && (string)i.Operand == "Content");
+contentRootLiteral.OpCode = OpCodes.Call;
+contentRootLiteral.Operand = Hook("ContentRoot");
+var coinSlotConstructor = Method("Terraria.UI.CoinSlot", ".cctor");
+var chestEntriesStore = coinSlotConstructor.Body.Instructions.Single(i =>
+    i.Operand is FieldReference f && f.FullName == "Terraria.UI.CoinSlot/CoinEntry[] Terraria.UI.CoinSlot::ChestEntries");
+var chestEntriesSize = chestEntriesStore.Previous.Previous;
+if (chestEntriesSize.OpCode != OpCodes.Ldc_I4 || (int)chestEntriesSize.Operand != 200)
+    throw new InvalidOperationException("Cannot locate CoinSlot chest capacity.");
+chestEntriesSize.Operand = 1000;
 foreach (var method in new[] { Method("Terraria.NetMessage", "SendData"), Method("Terraria.MessageBuffer", "GetData") })
 {
     var literal = method.Body.Instructions.Single(i => i.OpCode == OpCodes.Ldstr && (string)i.Operand == "Terraria");
@@ -75,10 +89,12 @@ var search = runtime.GetType("ExtendedChest.SearchUI");
 var draw = Method("Terraria.UI.ChestUI", "DrawSlots");
 AtStart(draw, Instruction.Create(OpCodes.Ldarg_0), Instruction.Create(OpCodes.Call, game.ImportReference(search.Methods.Single(m => m.Name == "Draw"))), Instruction.Create(OpCodes.Brfalse, draw.Body.Instructions[0]), Instruction.Create(OpCodes.Ret));
 AtStart(Method("Terraria.Main", "DoUpdate"), Instruction.Create(OpCodes.Call, game.ImportReference(search.Methods.Single(m => m.Name == "Update"))));
+var chestRange = Method("Terraria.Player", "HandleBeingInChestRange");
+var vanillaRangeCall = chestRange.Body.Instructions.Single(i =>
+    i.Operand is MethodReference m && m.Name == "IsInInteractionRangeToMultiTileHitbox");
+vanillaRangeCall.Operand = Hook("IsChestInRange");
 var tileDraw = Method("Terraria.GameContent.Drawing.TileDrawing", "GetTileDrawData");
 AtReturn(tileDraw, () => [Instruction.Create(OpCodes.Ldarg, tileDraw.Parameters.Single(p => p.Name == "typeCache")), Instruction.Create(OpCodes.Ldarg, tileDraw.Parameters.Single(p => p.Name == "tileFrameX")), Call("TileFrame")]);
-var getTileTexture = Method("Terraria.GameContent.Drawing.TileDrawing", "GetTileDrawTexture", 3);
-AtReturn(getTileTexture, () => [Instruction.Create(OpCodes.Ldarg, getTileTexture.Parameters.Single(p => p.Name == "tile")), Call("TileTexture")]);
 
 // Packet 32 normally encodes the chest slot as one byte. Patched peers use Int16 so Tier 2 slots 0..999 synchronize.
 var sendData = Method("Terraria.NetMessage", "SendData");

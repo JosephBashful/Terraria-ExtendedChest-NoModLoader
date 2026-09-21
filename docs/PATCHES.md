@@ -2,10 +2,16 @@
 
 The patcher modifies a verified local copy of Terraria 1.4.5.8 for Windows. It never overwrites the Steam executable.
 
+The patched client restores its working directory to the directory containing its executable before XNA initializes
+the relative `Content` URI. This keeps local Steam assets available if Steam changes the launch directory.
+
 - separates the multiplayer protocol with the identifier `Terraria-ExtendedChest-v2-326`;
 - expands the item registry from 6,196 to 6,198 entries;
 - registers item/style 6196/52 as `Extended Chest Tier 1` and item/style 6197/53 as `Extended Chest Tier 2`;
-- aliases item and placed-chest rendering to dark-red Crimson and Crimtane artwork loaded from the user's game;
+- maps both placed tiers within Terraria's original `Containers` texture sheet, using the Crimson and Flesh variants,
+  and aliases their item icons to the matching locally loaded artwork;
+- supplies the interaction-range check missing from the non-vanilla Tier 2 container style;
+- expands the client-side chest coin-state array from 200 to 1,000 entries so opening Tier 2 cannot overrun it;
 - adds the Tier 1 recipe and separate Demonite and Crimtane Tier 2 recipes;
 - reads `Tier1Slots` and `Tier2Slots` from `extended-chest.config`, then resizes newly placed chests up to the tier
   limits of 200 and 1,000 slots;

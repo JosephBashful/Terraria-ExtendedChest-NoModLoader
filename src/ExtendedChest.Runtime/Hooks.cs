@@ -4,15 +4,20 @@ using System.Reflection;
 using Terraria;
 using Terraria.ID;
 using Terraria.Localization;
-#if !SERVER
-using Microsoft.Xna.Framework.Graphics;
-using Terraria.GameContent;
-#endif
+using Terraria.DataStructures;
 
 namespace ExtendedChest
 {
     public static class Hooks
     {
+        public static string ContentRoot()
+        {
+            // XNA's TitleContainer requires a relative URI, but resolves it from the process
+            // working directory. Steam may change that directory when launching a copied EXE.
+            Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+            return "Content";
+        }
+
         public const int Tier1ItemType = 6196;
         public const int Tier2ItemType = 6197;
         public const int ItemType = Tier1ItemType;
@@ -46,13 +51,8 @@ namespace ExtendedChest
             if (type != 21) return;
             int style = frame / 36;
             if (style == Tier1Style) frame = (short)(20 * 36 + frame % 36);
-            if (style == Tier2Style) frame = (short)(23 * 36 + frame % 36);
+            if (style == Tier2Style) frame = (short)(43 * 36 + frame % 36);
         }
-
-#if !SERVER
-        public static Texture2D TileTexture(Texture2D original, Tile tile) =>
-            tile != null && tile.type == 21 && tile.frameX / 36 == Tier2Style ? TextureAssets.Tile[467].Value : original;
-#endif
 
         public static void MapOption(int type, Tile tile, ref int option)
         {
@@ -102,7 +102,7 @@ namespace ExtendedChest
         {
             if (type != Tier1ItemType && type != Tier2ItemType) return false;
             bool tier2 = type == Tier2ItemType;
-            item.SetDefaults(tier2 ? 5784 : 1530);
+            item.SetDefaults(tier2 ? 2617 : 1530);
             item.type = type;
             item.createTile = 21;
             item.placeStyle = tier2 ? Tier2Style : Tier1Style;
@@ -116,7 +116,7 @@ namespace ExtendedChest
         public static void SetupSets()
         {
             ItemID.Sets.TextureCopyLoad[Tier1ItemType] = 1530;
-            ItemID.Sets.TextureCopyLoad[Tier2ItemType] = 5784;
+            ItemID.Sets.TextureCopyLoad[Tier2ItemType] = 2617;
         }
 
         public static void SetupItemId()
@@ -162,6 +162,21 @@ namespace ExtendedChest
             return style == Tier1Style ? 1 : style == Tier2Style ? 2 : 0;
         }
         public static bool IsExtended(Chest chest) => Tier(chest) != 0;
+
+        public static bool IsChestInRange(Player player, int x, int y)
+        {
+            int index = Chest.FindChest(x, y);
+            if (index < 0 || !IsExtended(Main.chest[index]))
+                return player.IsInInteractionRangeToMultiTileHitbox(x, y);
+
+            // Style 53 has no vanilla TileObjectData entry, so Terraria's multi-tile range
+            // helper rejects it. A normal tile reach check keeps the chest open only nearby.
+            return player.IsInTileInteractionRange(x, y, TileReachCheckSettings.Simple, 0) ||
+                   player.IsInTileInteractionRange(x + 1, y, TileReachCheckSettings.Simple, 0) ||
+                   player.IsInTileInteractionRange(x, y + 1, TileReachCheckSettings.Simple, 0) ||
+                   player.IsInTileInteractionRange(x + 1, y + 1, TileReachCheckSettings.Simple, 0);
+        }
+
         public static int CapacityFor(Chest chest) => Tier(chest) == 2 ? Tier2Capacity : Tier1Capacity;
         public static Chest Created(Chest chest)
         {
