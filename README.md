@@ -1,7 +1,7 @@
 # Extended Chest — Mod for Terraria 1.4.5.8 
 
 While waiting for the official tmodloader support, I made this direct mod prototype.
-It work without tModLoader, adds two extended chest tiers, item-name searching, and integration
+It works without tModLoader, adds two extended chest tiers, item-name searching, and integration
 with vanilla crafting from nearby chests. 
 Tier 1 supports up to 200 configurable slots; Tier 2 provides 1,000 slots.
 
