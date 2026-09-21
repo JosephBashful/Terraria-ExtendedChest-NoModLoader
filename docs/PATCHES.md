@@ -7,7 +7,8 @@ The patcher modifies a verified local copy of Terraria 1.4.5.8 for Windows. It n
 - registers item/style 6196/52 as `Extended Chest Tier 1` and item/style 6197/53 as `Extended Chest Tier 2`;
 - aliases item and placed-chest rendering to dark-red Crimson and Crimtane artwork loaded from the user's game;
 - adds the Tier 1 recipe and separate Demonite and Crimtane Tier 2 recipes;
-- resizes new Tier 1 chests to the configured capacity, up to 200 slots, and Tier 2 chests to 1,000 slots;
+- reads `Tier1Slots` and `Tier2Slots` from `extended-chest.config`, then resizes newly placed chests up to the tier
+  limits of 200 and 1,000 slots;
 - widens packet 32's chest-slot index from 8 to 16 bits for slots above 255;
 - intercepts the extended chest panel to add searching, mouse-wheel scrolling, a draggable vertical scrollbar, and a
   live used/available slot count;

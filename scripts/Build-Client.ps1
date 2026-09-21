@@ -59,7 +59,7 @@ try {
     $runtime = Join-Path $runtimeOutput 'ExtendedChest.Runtime.dll'
     Invoke-DotNet -CommandArgs @($patcher, $gameExe, $runtime, $referenceDir, (Join-Path $distDir 'Terraria.exe'))
 
-    Copy-Item -LiteralPath (Join-Path $repoRoot 'config\extended-chest.slots') -Destination $distDir -Force
+    Copy-Item -LiteralPath (Join-Path $repoRoot 'config\extended-chest.config') -Destination $distDir -Force
     Copy-Item -LiteralPath (Join-Path $repoRoot 'scripts\Start-ExtendedChest.cmd') -Destination $distDir -Force
     Copy-Item -LiteralPath (Join-Path $repoRoot 'README.md') -Destination $distDir -Force
     Get-ChildItem -LiteralPath $GamePath -File | Where-Object {

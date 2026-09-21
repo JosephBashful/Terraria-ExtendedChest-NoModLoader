@@ -19,8 +19,8 @@ installed Steam copy.
 ## Features
 
 - distinct `Extended Chest Tier 1` and `Extended Chest Tier 2` items;
-- Tier 1: 200 slots by default, configurable from 40 to 200 in `extended-chest.slots`;
-- Tier 2: 1,000 slots;
+- Tier 1: 200 slots by default, configurable from 40 to 200;
+- Tier 2: 1,000 slots by default, configurable from 200 to 1,000;
 - case-insensitive item-name search;
 - mouse-wheel grid scrolling;
 - a draggable vertical scrollbar that follows the active search results;
@@ -30,8 +30,15 @@ installed Steam copy.
 - vanilla crafting from materials stored beyond slot 40;
 - native variable-capacity persistence and a modded 16-bit slot-index packet for Tier 2 synchronization.
 
-The configured capacity applies to newly placed chests. Existing saved chests keep their current capacity, so
-reducing the setting cannot silently delete stored items.
+Configure both tiers in `extended-chest.config`:
+
+```ini
+Tier1Slots=200
+Tier2Slots=1000
+```
+
+Tier 2 cannot be smaller than Tier 1. Configured capacities apply to newly placed chests. Existing saved chests keep
+their current capacity, so reducing a setting cannot silently delete stored items.
 
 ## Requirements
 
