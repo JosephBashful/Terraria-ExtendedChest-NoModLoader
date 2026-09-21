@@ -1,7 +1,9 @@
-# Extended Chest — Windows client for Terraria 1.4.5.8
+# Extended Chest — Mod for Terraria 1.4.5.8 
 
-A direct mod prototype, without tModLoader, that adds two extended chest tiers, item-name searching, and integration
-with vanilla crafting from nearby chests. Tier 1 supports up to 200 configurable slots; Tier 2 provides 1,000 slots.
+While waiting for the official tmodloader support, I made this direct mod prototype.
+It work without tModLoader, adds two extended chest tiers, item-name searching, and integration
+with vanilla crafting from nearby chests. 
+Tier 1 supports up to 200 configurable slots; Tier 2 provides 1,000 slots.
 
 This repository contains only original code and patching tools. **It does not contain Terraria, modified executables,
 game DLLs, assets, or decompiled game sources.** The patch is built and applied locally to the user's legitimately
@@ -27,7 +29,7 @@ installed Steam copy.
 - a live count of used and available slots;
 - Tier 1 recipe: 5 Wooden Chests and 10 Iron Bars at an Anvil;
 - Tier 2 recipes: 1 Tier 1 chest and either 25 Demonite Bars or 25 Crimtane Bars at an Anvil;
-- vanilla crafting from materials stored beyond slot 40;
+- vanilla crafting from materials stored on nearby chest beyond slot 40;
 - native variable-capacity persistence and a modded 16-bit slot-index packet for Tier 2 synchronization.
 
 Configure both tiers in `extended-chest.config`:
