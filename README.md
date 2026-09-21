@@ -13,7 +13,7 @@ installed Steam copy.
 
 - supported version: Terraria 1.4.5.8 for Windows;
 - single player: tested and working;
-- multiplayer: protocol and core packets tested automatically; a complete play session still needs testing;
+- multiplayer: still in development, but planned for the very near future;
 - tModLoader: not required;
 - graphics: dark-red vanilla-style appearances sourced at runtime from the user's Terraria installation;
 - item and search interface language: English.
