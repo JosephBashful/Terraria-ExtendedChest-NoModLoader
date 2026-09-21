@@ -1,4 +1,4 @@
-# Extended Chest — Mod for Terraria 1.4.5.8 
+# Extended Chest - Mod for Terraria 1.4.5.8 
 
 While waiting for the official tmodloader support, I made this direct mod prototype.
 It works without tModLoader, adds two extended chest tiers, item-name searching, and integration
