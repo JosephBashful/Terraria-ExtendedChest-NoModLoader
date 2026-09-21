@@ -1,0 +1,24 @@
+name: Build original tools
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build patcher
+        run: dotnet build src/ExtendedChest.Patcher/ExtendedChest.Patcher.csproj --configuration Release
+      - name: Build resource extractor
+        run: dotnet build tools/ResourceExtractor/ResourceExtractor.csproj --configuration Release
+      - name: Ensure no Terraria binaries are tracked
+        shell: pwsh
+        run: |
+          $forbidden = git ls-files | Where-Object { $_ -match '(?i)(^|/)(Terraria(Server)?\.exe|Content/)' }
+          if ($forbidden) { throw "Forbidden Terraria files tracked:`n$($forbidden -join "`n")" }
+

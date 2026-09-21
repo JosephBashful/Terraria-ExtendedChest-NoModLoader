@@ -1,0 +1,26 @@
+# Output generated locally from the user's licensed Terraria installation
+/dist/
+/.local/
+
+# .NET build output
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# IDE and OS files
+/.vs/
+/.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+
+# Never commit Terraria or generated patch artifacts
+Terraria.exe
+TerrariaServer.exe
+Content/
+*.wld
+*.plr
+*.bak
+*.patch.txt
+
