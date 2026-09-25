@@ -13,6 +13,7 @@ namespace ExtendedChest
 {
     public static class SearchUI
     {
+        private const int SearchWidth = 372;
         private static string query = "";
         private static int currentChest = -1;
         private static bool focused;
@@ -20,6 +21,10 @@ namespace ExtendedChest
         private static bool draggingScrollbar;
         private static int scrollbarDragOffset;
         private static readonly List<int> matches = new List<int>();
+        // ItemSlot uses its slot argument both as an array index and as the UI/gamepad
+        // position. Extended chest indices do not belong to the 40-point visible grid,
+        // so drawing the chest array directly can abort as soon as a match is past slot 39.
+        private static readonly Item[] visibleItems = new Item[1000];
 
         private static void Focus(bool value)
         {
@@ -31,9 +36,19 @@ namespace ExtendedChest
 
         public static void Update()
         {
-            if (Main.gameMenu || Main.LocalPlayer == null || !Main.playerInventory ||
-                Main.LocalPlayer.chest < 0 || Main.LocalPlayer.chest != currentChest ||
-                Main.editChest || Terraria.GameContent.UI.NewCraftingUI.Visible)
+            Player player = Main.LocalPlayer;
+            bool extendedChestOpen = !Main.gameMenu && player != null && Main.playerInventory &&
+                player.chest >= 0 && Main.chest[player.chest] != null && Hooks.IsExtended(Main.chest[player.chest]);
+            if (!extendedChestOpen)
+            {
+                // Mark the session as closed so reopening even the same chest index starts
+                // with a fresh filter.
+                currentChest = -1;
+                query = "";
+                ChestUI.StartingRowForDrawing = 0;
+            }
+            if (!extendedChestOpen || player.chest != currentChest || Main.editChest ||
+                Terraria.GameContent.UI.NewCraftingUI.Visible)
             {
                 Focus(false);
                 draggingScrollbar = false;
@@ -43,7 +58,9 @@ namespace ExtendedChest
 
         private static void DrawScrollbar(SpriteBatch batch, Player player, int top)
         {
-            var track = new Rectangle(498, top, 8, 170);
+            // Keep the scrollbar outside the chest grid and away from the vanilla
+            // chest name/action labels drawn on the right.
+            var track = new Rectangle(60, top, 8, 170);
             int totalRows = Math.Max(1, (matches.Count + 9) / 10);
             int thumbHeight = Math.Max(20, track.Height * Math.Min(4, totalRows) / totalRows);
             int travel = track.Height - thumbHeight;
@@ -98,7 +115,9 @@ namespace ExtendedChest
             Chest chest = Main.chest[player.chest];
             Main.inventoryScale = 0.755f;
             int top = Main.instance.invBottom;
-            var searchRect = new Rectangle(73, top + 174, 422, 28);
+            // Leave the rightmost chest column free: Terraria moves the trash slot
+            // into that area while a chest is open.
+            var searchRect = new Rectangle(73, top + 174, SearchWidth, 28);
             bool hover = searchRect.Contains(Main.mouseX, Main.mouseY) && !PlayerInput.IgnoreMouseInterface;
             if (hover) player.mouseInterface = true;
             if (Main.mouseLeft && Main.mouseLeftRelease)
@@ -117,6 +136,8 @@ namespace ExtendedChest
                 PlayerInput.WritingText = true;
                 string updated = Main.GetInputText(query);
                 if (updated.Length > 64) updated = updated.Substring(0, 64);
+                while (updated.Length > 0 && FontAssets.MouseText.Value.MeasureString(updated + "|").X * 0.8f > searchRect.Width - 12)
+                    updated = updated.Substring(0, updated.Length - 1);
                 if (query != updated) ChestUI.StartingRowForDrawing = 0;
                 query = updated;
                 if (Main.keyState.IsKeyDown(Keys.Escape) || Main.keyState.IsKeyDown(Keys.Enter)) Focus(false);
@@ -144,14 +165,28 @@ namespace ExtendedChest
                 int position = ChestUI.StartingRowForDrawing * 10 + visible;
                 if (position >= matches.Count) break;
                 int slot = matches[position];
+                // ItemSlot derives the 0..39 link point by subtracting the current
+                // scroll offset, so it needs the paged display index, not just 0..39.
+                int displaySlot = position;
                 var point = new Vector2(73 + (visible % 10) * 56 * Main.inventoryScale, top + (visible / 10) * 56 * Main.inventoryScale);
                 var rect = new Rectangle((int)point.X, (int)point.Y, 39, 39);
                 if (rect.Contains(Main.mouseX, Main.mouseY) && !PlayerInput.IgnoreMouseInterface)
                 {
                     player.mouseInterface = true;
-                    ItemSlot.Handle(chest.item, 3, slot);
+                    // Handle the compact UI slot so Terraria only addresses one of its
+                    // registered 40 chest link points. Context 4 has chest semantics but
+                    // suppresses the packet that would otherwise contain the visible index.
+                    visibleItems[displaySlot] = chest.item[slot];
+                    Item previous = Main.netMode == 1 ? visibleItems[displaySlot].Clone() : null;
+                    ItemSlot.Handle(visibleItems, 4, displaySlot);
+                    chest.item[slot] = visibleItems[displaySlot];
+                    if (previous != null && chest.item[slot].IsNetStateDifferent(previous))
+                        NetMessage.SendData(32, -1, -1, null, player.chest, slot);
                 }
-                ItemSlot.Draw(batch, chest.item, 3, slot, point);
+                // Draw against the compact visible grid. Interaction above still uses the
+                // real chest index, including multiplayer synchronization for extended slots.
+                visibleItems[displaySlot] = chest.item[slot];
+                ItemSlot.Draw(batch, visibleItems, 3, displaySlot, point);
             }
             string usage = "Slots: " + usedSlots + " used / " + (chest.maxItems - usedSlots) + " available";
             ChatManager.DrawColorCodedStringWithShadow(batch, FontAssets.MouseText.Value, usage,
