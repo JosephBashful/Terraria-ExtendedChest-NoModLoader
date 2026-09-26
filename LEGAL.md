@@ -11,7 +11,7 @@ It grants no rights to Terraria files or content.
 - patcher source code;
 - Extended Chest runtime source code;
 - tools that operate on the user's local copy;
-- build scripts and documentation.
+- client and dedicated-server build scripts and documentation.
 
 ## What must not be published
 
@@ -25,10 +25,10 @@ It grants no rights to Terraria files or content.
 - the `dist` directory, because it is generated from local game files;
 - the `.local` directory, because it may contain locally extracted references.
 
-The Windows and Linux build scripts read from the user's own supported Steam installation and write generated clients
-only to the Git-ignored `dist` directory. The patcher accepts only explicitly reviewed executable hashes, preserves the
-game's Steam initialization and verification, and does not provide or download Terraria, remove DRM, or enable the
-game to run without a legitimate Steam installation.
+The Windows and Linux build scripts read from the user's own supported Steam installation or matching official
+Re-Logic dedicated-server package and write generated clients or servers only to the Git-ignored `dist` directory.
+The patcher accepts only explicitly reviewed executable hashes, preserves client Steam initialization and
+verification, and does not provide or download Terraria, remove DRM, or bypass any client ownership requirement.
 
 Before publishing a fork or release, review the current Re-Logic rules:
 https://forums.terraria.org/index.php?threads/modding-pc-only-rules-guidelines.286/

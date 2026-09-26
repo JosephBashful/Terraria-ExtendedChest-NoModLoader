@@ -6,12 +6,14 @@ if (args.Length != 4) throw new ArgumentException("Usage: Patcher <original exe>
 string input = Path.GetFullPath(args[0]), output = Path.GetFullPath(args[3]);
 if (input.Equals(output, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Input must remain untouched.");
 string hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(input)));
-var supportedBuilds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+var supportedBuilds = new Dictionary<string, (string Platform, string Target)>(StringComparer.OrdinalIgnoreCase)
 {
-    ["960A03BFF6050CF7BE16DFC1A7B19E10FC2C4F8F835A6A3B135A50DD9E6BA2F3"] = "Windows",
-    ["AE6ADF9CCD9131CFADF5FDC60CEA5F97DE4ED24084CE7F29582133AAA7A5DF3A"] = "Linux"
+    ["960A03BFF6050CF7BE16DFC1A7B19E10FC2C4F8F835A6A3B135A50DD9E6BA2F3"] = ("Windows", "Client"),
+    ["AE6ADF9CCD9131CFADF5FDC60CEA5F97DE4ED24084CE7F29582133AAA7A5DF3A"] = ("Linux", "Client"),
+    ["328872C65A4A7A94F050EAD1566F1567AF15C3193D4D7008A460507D3686D7C2"] = ("Windows", "Server"),
+    ["4B87890AC53D40F61DB5F928693A379ACF4CCBD8ED3B47EB32FB096F145DF034"] = ("Linux", "Server")
 };
-if (!supportedBuilds.TryGetValue(hash, out string? platform))
+if (!supportedBuilds.TryGetValue(hash, out var build))
     throw new InvalidOperationException("Unsupported build SHA256: " + hash);
 using var resolver = new DefaultAssemblyResolver();
 resolver.AddSearchDirectory(Path.GetDirectoryName(input));
@@ -23,11 +25,15 @@ resolver.AddSearchDirectory(Path.Combine(Environment.GetFolderPath(Environment.S
 resolver.AddSearchDirectory(Path.GetFullPath(args[2]));
 using var game = ModuleDefinition.ReadModule(input, new ReaderParameters { AssemblyResolver = resolver });
 using var runtime = ModuleDefinition.ReadModule(args[1]);
-if (game.Assembly.Name.Name != "Terraria")
-    throw new InvalidOperationException("This repository patches only a supported Terraria client.");
+bool isServer = build.Target == "Server";
+string expectedAssemblyName = isServer ? "TerrariaServer" : "Terraria";
+if (game.Assembly.Name.Name != expectedAssemblyName)
+    throw new InvalidOperationException($"Expected the {build.Platform} {build.Target} assembly '{expectedAssemblyName}'.");
 bool usesFna = game.AssemblyReferences.Any(reference => reference.Name == "FNA");
-if ((platform == "Linux") != usesFna)
-    throw new InvalidOperationException($"The {platform} build has an unexpected graphics backend.");
+if ((build.Platform == "Linux") != usesFna)
+    throw new InvalidOperationException($"The {build.Platform} {build.Target} has an unexpected graphics backend.");
+if (!runtime.AssemblyReferences.Any(reference => reference.Name == expectedAssemblyName))
+    throw new InvalidOperationException($"The runtime was not compiled for {expectedAssemblyName}.");
 var hooks = runtime.GetType("ExtendedChest.Hooks");
 MethodReference Hook(string name) => game.ImportReference(hooks.Methods.Single(m => m.Name == name));
 MethodDefinition Method(string type, string name, int? count = null) => game.GetType(type).Methods.Single(m => m.Name == name && (count == null || m.Parameters.Count == count));
@@ -50,20 +56,23 @@ void AtReturn(MethodDefinition method, Func<Instruction[]> create)
     }
 }
 Instruction Call(string name) => Instruction.Create(OpCodes.Call, Hook(name));
-// XNA requires a relative Content URI. The hook first restores the process working directory
-// to the patched executable's directory, then returns the original relative root name.
-var mainConstructor = Method("Terraria.Main", ".ctor", 0);
-var contentRootLiteral = mainConstructor.Body.Instructions.Single(i =>
-    i.OpCode == OpCodes.Ldstr && (string)i.Operand == "Content");
-contentRootLiteral.OpCode = OpCodes.Call;
-contentRootLiteral.Operand = Hook("ContentRoot");
-var coinSlotConstructor = Method("Terraria.UI.CoinSlot", ".cctor");
-var chestEntriesStore = coinSlotConstructor.Body.Instructions.Single(i =>
-    i.Operand is FieldReference f && f.FullName == "Terraria.UI.CoinSlot/CoinEntry[] Terraria.UI.CoinSlot::ChestEntries");
-var chestEntriesSize = chestEntriesStore.Previous.Previous;
-if (chestEntriesSize.OpCode != OpCodes.Ldc_I4 || (int)chestEntriesSize.Operand != 200)
-    throw new InvalidOperationException("Cannot locate CoinSlot chest capacity.");
-chestEntriesSize.Operand = 1000;
+if (!isServer)
+{
+    // XNA requires a relative Content URI. The hook first restores the process working directory
+    // to the patched executable's directory, then returns the original relative root name.
+    var mainConstructor = Method("Terraria.Main", ".ctor", 0);
+    var contentRootLiteral = mainConstructor.Body.Instructions.Single(i =>
+        i.OpCode == OpCodes.Ldstr && (string)i.Operand == "Content");
+    contentRootLiteral.OpCode = OpCodes.Call;
+    contentRootLiteral.Operand = Hook("ContentRoot");
+    var coinSlotConstructor = Method("Terraria.UI.CoinSlot", ".cctor");
+    var chestEntriesStore = coinSlotConstructor.Body.Instructions.Single(i =>
+        i.Operand is FieldReference f && f.FullName == "Terraria.UI.CoinSlot/CoinEntry[] Terraria.UI.CoinSlot::ChestEntries");
+    var chestEntriesSize = chestEntriesStore.Previous.Previous;
+    if (chestEntriesSize.OpCode != OpCodes.Ldc_I4 || (int)chestEntriesSize.Operand != 200)
+        throw new InvalidOperationException("Cannot locate CoinSlot chest capacity.");
+    chestEntriesSize.Operand = 1000;
+}
 foreach (var method in new[] { Method("Terraria.NetMessage", "SendData"), Method("Terraria.MessageBuffer", "GetData") })
 {
     var literal = method.Body.Instructions.Single(i => i.OpCode == OpCodes.Ldstr && (string)i.Operand == "Terraria");
@@ -91,18 +100,21 @@ foreach (var name in new[] { "GetItemDrop_Chests", "GetChestIcon" })
     AtStart(method, Instruction.Create(OpCodes.Ldarg_0), Instruction.Create(OpCodes.Ldc_I4, 52), Instruction.Create(OpCodes.Bne_Un, start), Instruction.Create(OpCodes.Ldarg_1), Instruction.Create(OpCodes.Brtrue, start), Instruction.Create(OpCodes.Ldc_I4, 6196), Instruction.Create(OpCodes.Ret));
     AtStart(method, Instruction.Create(OpCodes.Ldarg_0), Instruction.Create(OpCodes.Ldc_I4, 53), Instruction.Create(OpCodes.Bne_Un, method.Body.Instructions[0]), Instruction.Create(OpCodes.Ldarg_1), Instruction.Create(OpCodes.Brtrue, method.Body.Instructions[0]), Instruction.Create(OpCodes.Ldc_I4, 6197), Instruction.Create(OpCodes.Ret));
 }
-var mapOption = Method("Terraria.Map.MapHelper", "GetTileBaseOption");
-AtReturn(mapOption, () => [Instruction.Create(OpCodes.Ldarg_2), Instruction.Create(OpCodes.Ldarg_3), Instruction.Create(OpCodes.Ldarg, mapOption.Parameters[4]), Call("MapOption")]);
-var search = runtime.GetType("ExtendedChest.SearchUI");
-var draw = Method("Terraria.UI.ChestUI", "DrawSlots");
-AtStart(draw, Instruction.Create(OpCodes.Ldarg_0), Instruction.Create(OpCodes.Call, game.ImportReference(search.Methods.Single(m => m.Name == "Draw"))), Instruction.Create(OpCodes.Brfalse, draw.Body.Instructions[0]), Instruction.Create(OpCodes.Ret));
-AtStart(Method("Terraria.Main", "DoUpdate"), Instruction.Create(OpCodes.Call, game.ImportReference(search.Methods.Single(m => m.Name == "Update"))));
 var chestRange = Method("Terraria.Player", "HandleBeingInChestRange");
 var vanillaRangeCall = chestRange.Body.Instructions.Single(i =>
     i.Operand is MethodReference m && m.Name == "IsInInteractionRangeToMultiTileHitbox");
 vanillaRangeCall.Operand = Hook("IsChestInRange");
-var tileDraw = Method("Terraria.GameContent.Drawing.TileDrawing", "GetTileDrawData");
-AtReturn(tileDraw, () => [Instruction.Create(OpCodes.Ldarg, tileDraw.Parameters.Single(p => p.Name == "typeCache")), Instruction.Create(OpCodes.Ldarg, tileDraw.Parameters.Single(p => p.Name == "tileFrameX")), Call("TileFrame")]);
+if (!isServer)
+{
+    var mapOption = Method("Terraria.Map.MapHelper", "GetTileBaseOption");
+    AtReturn(mapOption, () => [Instruction.Create(OpCodes.Ldarg_2), Instruction.Create(OpCodes.Ldarg_3), Instruction.Create(OpCodes.Ldarg, mapOption.Parameters[4]), Call("MapOption")]);
+    var search = runtime.GetType("ExtendedChest.SearchUI");
+    var draw = Method("Terraria.UI.ChestUI", "DrawSlots");
+    AtStart(draw, Instruction.Create(OpCodes.Ldarg_0), Instruction.Create(OpCodes.Call, game.ImportReference(search.Methods.Single(m => m.Name == "Draw"))), Instruction.Create(OpCodes.Brfalse, draw.Body.Instructions[0]), Instruction.Create(OpCodes.Ret));
+    AtStart(Method("Terraria.Main", "DoUpdate"), Instruction.Create(OpCodes.Call, game.ImportReference(search.Methods.Single(m => m.Name == "Update"))));
+    var tileDraw = Method("Terraria.GameContent.Drawing.TileDrawing", "GetTileDrawData");
+    AtReturn(tileDraw, () => [Instruction.Create(OpCodes.Ldarg, tileDraw.Parameters.Single(p => p.Name == "typeCache")), Instruction.Create(OpCodes.Ldarg, tileDraw.Parameters.Single(p => p.Name == "tileFrameX")), Call("TileFrame")]);
+}
 
 // Packet 32 normally encodes the chest slot as one byte. Patched peers use Int16 so Tier 2 slots 0..999 synchronize.
 var sendData = Method("Terraria.NetMessage", "SendData");
@@ -137,7 +149,7 @@ Directory.CreateDirectory(Path.GetDirectoryName(output)!);
 game.Write(output + ".tmp");
 File.Move(output + ".tmp", output, true);
 File.Copy(args[1], Path.Combine(Path.GetDirectoryName(output)!, "ExtendedChest.Runtime.dll"), true);
-File.WriteAllText(output + ".patch.txt", $"ExtendedChest prototype\nPlatform: {platform}\nInput SHA256: {hash}\nTier 1 item/style: 6196/52\nTier 2 item/style: 6197/53\n");
+File.WriteAllText(output + ".patch.txt", $"ExtendedChest prototype\nPlatform: {build.Platform}\nTarget: {build.Target}\nInput SHA256: {hash}\nTier 1 item/style: 6196/52\nTier 2 item/style: 6197/53\n");
 Console.WriteLine("Patched copy: " + output);
 
 static IEnumerable<TypeDefinition> AllTypes(IEnumerable<TypeDefinition> types)

@@ -145,6 +145,7 @@ namespace ExtendedChest
             for (int i = 0; i < Recipe.numRecipes; i++)
                 if (Main.recipe[i].createItem.type == Tier1ItemType) return;
             AddRecipe(Tier1ItemType, 48, 5, 22, 10);
+            AddRecipe(Tier1ItemType, 48, 5, 704, 10);
             AddRecipe(Tier2ItemType, Tier1ItemType, 1, 57, 25);
             AddRecipe(Tier2ItemType, Tier1ItemType, 1, 1257, 25);
             Recipe.TileUsedInRecipes[16] = true;

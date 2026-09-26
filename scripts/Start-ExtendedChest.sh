@@ -11,4 +11,4 @@ fi
 
 mkdir -p Saves
 export MONO_IOMAP=all
-exec ./Terraria.bin.x86_64 -savedirectory "$PWD/Saves" "$@"
+exec ./Terraria.bin.x86_64 -savedirectory Saves "$@"

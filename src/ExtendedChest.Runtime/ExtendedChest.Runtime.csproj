@@ -4,13 +4,15 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>ExtendedChest.Runtime</AssemblyName>
     <GamePath Condition="'$(GamePath)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Terraria</GamePath>
+    <GameAssemblyName Condition="'$(GameAssemblyName)' == ''">Terraria</GameAssemblyName>
+    <GameExecutable Condition="'$(GameExecutable)' == ''">Terraria.exe</GameExecutable>
     <ReferencePath Condition="'$(ReferencePath)' == ''">$(MSBuildProjectDirectory)/../../.local/refs</ReferencePath>
     <GraphicsBackend Condition="'$(GraphicsBackend)' == ''">XNA</GraphicsBackend>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net45" Version="1.0.3" PrivateAssets="all" />
-    <Reference Include="Terraria">
-      <HintPath>$(GamePath)/Terraria.exe</HintPath>
+    <Reference Include="$(GameAssemblyName)">
+      <HintPath>$(GamePath)/$(GameExecutable)</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="ReLogic">
