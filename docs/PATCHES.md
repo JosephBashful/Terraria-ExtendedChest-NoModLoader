@@ -1,9 +1,12 @@
 # Client patches
 
-The patcher modifies a verified local copy of Terraria 1.4.5.8 for Windows. It never overwrites the Steam executable.
+The patcher modifies a verified local copy of a native Terraria 1.4.5.8 client for Windows or Linux. It never
+overwrites the Steam executable. The Windows runtime is compiled against XNA; the Linux runtime is compiled against
+the `FNA.dll` shipped with the user's native Steam installation.
 
-The patched client restores its working directory to the directory containing its executable before XNA initializes
-the relative `Content` URI. This keeps local Steam assets available if Steam changes the launch directory.
+The patched client restores its working directory to the directory containing its executable before the graphics
+backend initializes the relative `Content` URI. This keeps local Steam assets available if Steam changes the launch
+directory.
 
 - separates the multiplayer protocol with the identifier `Terraria-ExtendedChest-v2-326`;
 - expands the item registry from 6,196 to 6,198 entries;
@@ -27,7 +30,8 @@ vanilla and earlier revisions of this mod.
 To prevent partial patching of unknown versions, the patcher rejects every SHA-256 hash except:
 
 ```text
-960A03BFF6050CF7BE16DFC1A7B19E10FC2C4F8F835A6A3B135A50DD9E6BA2F3
+Windows: 960A03BFF6050CF7BE16DFC1A7B19E10FC2C4F8F835A6A3B135A50DD9E6BA2F3
+Linux:   AE6ADF9CCD9131CFADF5FDC60CEA5F97DE4ED24084CE7F29582133AAA7A5DF3A
 ```
 
 The patcher does not alter Steam verification, does not modify the Steam-installed executable, and does not include

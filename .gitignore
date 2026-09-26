@@ -15,12 +15,20 @@
 Thumbs.db
 .DS_Store
 
-# Never commit Terraria or generated patch artifacts
-Terraria.exe
-TerrariaServer.exe
+# Source-only repository: never commit game or compiled runtime files
+*.exe
+*.dll
+*.so
+*.so.*
+*.bin.x86_64
 Content/
+lib64/
+Terraria
+TerrariaServer
+steam_appid.txt
+monoconfig
+monomachineconfig
 *.wld
 *.plr
 *.bak
 *.patch.txt
-

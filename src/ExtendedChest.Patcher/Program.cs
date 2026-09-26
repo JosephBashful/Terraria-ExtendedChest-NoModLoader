@@ -6,8 +6,13 @@ if (args.Length != 4) throw new ArgumentException("Usage: Patcher <original exe>
 string input = Path.GetFullPath(args[0]), output = Path.GetFullPath(args[3]);
 if (input.Equals(output, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Input must remain untouched.");
 string hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(input)));
-string[] allowed = ["960A03BFF6050CF7BE16DFC1A7B19E10FC2C4F8F835A6A3B135A50DD9E6BA2F3"];
-if (!allowed.Contains(hash)) throw new InvalidOperationException("Unsupported build SHA256: " + hash);
+var supportedBuilds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+{
+    ["960A03BFF6050CF7BE16DFC1A7B19E10FC2C4F8F835A6A3B135A50DD9E6BA2F3"] = "Windows",
+    ["AE6ADF9CCD9131CFADF5FDC60CEA5F97DE4ED24084CE7F29582133AAA7A5DF3A"] = "Linux"
+};
+if (!supportedBuilds.TryGetValue(hash, out string? platform))
+    throw new InvalidOperationException("Unsupported build SHA256: " + hash);
 using var resolver = new DefaultAssemblyResolver();
 resolver.AddSearchDirectory(Path.GetDirectoryName(input));
 resolver.AddSearchDirectory(Path.GetDirectoryName(Path.GetFullPath(args[1])));
@@ -19,7 +24,10 @@ resolver.AddSearchDirectory(Path.GetFullPath(args[2]));
 using var game = ModuleDefinition.ReadModule(input, new ReaderParameters { AssemblyResolver = resolver });
 using var runtime = ModuleDefinition.ReadModule(args[1]);
 if (game.Assembly.Name.Name != "Terraria")
-    throw new InvalidOperationException("This repository patches only the Windows Terraria client.");
+    throw new InvalidOperationException("This repository patches only a supported Terraria client.");
+bool usesFna = game.AssemblyReferences.Any(reference => reference.Name == "FNA");
+if ((platform == "Linux") != usesFna)
+    throw new InvalidOperationException($"The {platform} build has an unexpected graphics backend.");
 var hooks = runtime.GetType("ExtendedChest.Hooks");
 MethodReference Hook(string name) => game.ImportReference(hooks.Methods.Single(m => m.Name == name));
 MethodDefinition Method(string type, string name, int? count = null) => game.GetType(type).Methods.Single(m => m.Name == name && (count == null || m.Parameters.Count == count));
@@ -129,7 +137,7 @@ Directory.CreateDirectory(Path.GetDirectoryName(output)!);
 game.Write(output + ".tmp");
 File.Move(output + ".tmp", output, true);
 File.Copy(args[1], Path.Combine(Path.GetDirectoryName(output)!, "ExtendedChest.Runtime.dll"), true);
-File.WriteAllText(output + ".patch.txt", $"ExtendedChest prototype\nInput SHA256: {hash}\nTier 1 item/style: 6196/52\nTier 2 item/style: 6197/53\n");
+File.WriteAllText(output + ".patch.txt", $"ExtendedChest prototype\nPlatform: {platform}\nInput SHA256: {hash}\nTier 1 item/style: 6196/52\nTier 2 item/style: 6197/53\n");
 Console.WriteLine("Patched copy: " + output);
 
 static IEnumerable<TypeDefinition> AllTypes(IEnumerable<TypeDefinition> types)

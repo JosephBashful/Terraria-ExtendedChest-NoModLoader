@@ -5,6 +5,7 @@
     <AssemblyName>ExtendedChest.Runtime</AssemblyName>
     <GamePath Condition="'$(GamePath)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Terraria</GamePath>
     <ReferencePath Condition="'$(ReferencePath)' == ''">$(MSBuildProjectDirectory)/../../.local/refs</ReferencePath>
+    <GraphicsBackend Condition="'$(GraphicsBackend)' == ''">XNA</GraphicsBackend>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net45" Version="1.0.3" PrivateAssets="all" />
@@ -16,6 +17,8 @@
       <HintPath>$(ReferencePath)/ReLogic.dll</HintPath>
       <Private>false</Private>
     </Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(GraphicsBackend)' == 'XNA'">
     <Reference Include="Microsoft.Xna.Framework">
       <HintPath>C:/Windows/Microsoft.NET/assembly/GAC_32/Microsoft.Xna.Framework/v4.0_4.0.0.0__842cf8be1de50553/Microsoft.Xna.Framework.dll</HintPath>
       <Private>false</Private>
@@ -29,5 +32,10 @@
       <Private>false</Private>
     </Reference>
   </ItemGroup>
+  <ItemGroup Condition="'$(GraphicsBackend)' == 'FNA'">
+    <Reference Include="FNA">
+      <HintPath>$(GamePath)/FNA.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
 </Project>
-

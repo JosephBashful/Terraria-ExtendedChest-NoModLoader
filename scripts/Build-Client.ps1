@@ -51,6 +51,7 @@ try {
         '--configuration', $Configuration,
         "-p:GamePath=$GamePath",
         "-p:ReferencePath=$referenceDir",
+        '-p:GraphicsBackend=XNA',
         '--output', $runtimeOutput
     )
     Invoke-DotNet -CommandArgs @('build', 'src\ExtendedChest.Patcher\ExtendedChest.Patcher.csproj', '--configuration', $Configuration)

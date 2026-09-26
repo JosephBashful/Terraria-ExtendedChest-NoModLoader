@@ -16,21 +16,25 @@ It grants no rights to Terraria files or content.
 ## What must not be published
 
 - original or modified copies of `Terraria.exe` or `TerrariaServer.exe`;
+- the native Linux launchers or executables (`Terraria`, `TerrariaServer`, `Terraria.bin.x86_64`, or
+  `TerrariaServer.bin.x86_64`);
 - DLLs, runtimes, or archives copied from an official game or server installation;
+- `FNA.dll`, Mono framework assemblies, the native `lib64` directory, or `steam_appid.txt`;
 - the `Content` directory or individual game assets;
 - decompiled Terraria source code;
 - the `dist` directory, because it is generated from local game files;
 - the `.local` directory, because it may contain locally extracted references.
 
-The patcher preserves the game's Steam initialization and verification. It does not provide or download Terraria,
-remove DRM, or enable the game to run without a legitimate Steam installation.
+The Windows and Linux build scripts read from the user's own supported Steam installation and write generated clients
+only to the Git-ignored `dist` directory. The patcher accepts only explicitly reviewed executable hashes, preserves the
+game's Steam initialization and verification, and does not provide or download Terraria, remove DRM, or enable the
+game to run without a legitimate Steam installation.
 
 Before publishing a fork or release, review the current Re-Logic rules:
 https://forums.terraria.org/index.php?threads/modding-pc-only-rules-guidelines.286/
 
 ## GitHub Releases
 
-Do not attach the `dist` directory to a release. You may publish the source code and, if desired, compiled tools
-that contain only original project code. The most conservative distribution method is to publish source code only
-and require users to compile and apply the patch locally.
-
+Do not attach the `dist` directory to a release. This project's distribution policy is source-only: users compile the
+original patcher/runtime code and apply it locally to their own supported installation. Always check the current game
+owner and platform rules before publishing a fork or release; this notice is a project policy, not legal advice.

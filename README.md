@@ -11,7 +11,8 @@ installed Steam copy.
 
 ## Project status
 
-- supported version: Terraria 1.4.5.8 for Windows;
+- supported version: Terraria 1.4.5.8 native clients for Windows and Linux;
+- tested clients: Windows 11 and Linux Mint with the native Steam/FNA client;
 - single player: tested and working;
 - multiplayer: still in development, but planned for the very near future;
 - tModLoader: not required;
@@ -44,14 +45,17 @@ their current capacity, so reducing a setting cannot silently delete stored item
 
 ## Requirements
 
-1. Windows 10 or 11.
-2. Terraria 1.4.5.8 purchased and installed through Steam.
-3. Steam running when the client starts.
-4. [.NET SDK 8](https://dotnet.microsoft.com/download/dotnet/8.0) or later.
-5. Microsoft XNA Framework 4.0, normally installed with Terraria.
-6. NuGet access during the first build to obtain Mono.Cecil and the .NET Framework reference assemblies.
+1. Terraria 1.4.5.8 purchased and installed through Steam.
+2. Steam running when the client starts.
+3. [.NET SDK 8](https://dotnet.microsoft.com/download/dotnet/8.0) or later.
+4. NuGet access during the first build to obtain Mono.Cecil and the .NET Framework reference assemblies.
+5. On Windows 10 or 11: Microsoft XNA Framework 4.0, normally installed with Terraria.
+6. On Linux: the native Steam client files, including `FNA.dll`, `Terraria`, and `Terraria.bin.x86_64`.
 
-## Build and prepare the client
+The Linux build does not target the Windows client through Proton. In Steam's Terraria compatibility settings, do not
+force a Proton version when preparing the native Linux build.
+
+## Build and prepare the Windows client
 
 Open PowerShell in the repository root and run:
 
@@ -77,12 +81,46 @@ The script:
 
 The `.local` and `dist` directories are ignored by Git and must never be published.
 
+## Build and prepare the Linux client
+
+On Linux Mint, open a terminal in the repository root and run:
+
+```bash
+bash scripts/Build-Client-Linux.sh
+```
+
+Run the build as the normal desktop user, not as `root`. Verify the SDK first with `dotnet --list-sdks`; if the
+command is missing, install .NET SDK 8 or later using Microsoft's Linux instructions linked above.
+
+If Terraria is installed in another Steam library, pass its directory explicitly:
+
+```bash
+bash scripts/Build-Client-Linux.sh "/mnt/games/SteamLibrary/steamapps/common/Terraria"
+```
+
+The Linux script verifies the native 1.4.5.8 assembly, compiles the runtime against the installed `FNA.dll`, creates
+`dist/ExtendedChest-linux`, copies the required Mono/FNA runtime files only into that ignored local output, and links
+`Content` to the Steam installation. The original Steam files remain untouched, and none of the copied files are part
+of the repository.
+
+To inspect an installation without building or changing it:
+
+```bash
+bash scripts/Inspect-Linux-Client.sh "/path/to/steamapps/common/Terraria"
+```
+
 ## Launch and first test
 
 Keep Steam running, then launch:
 
 ```text
 dist\ExtendedChest\Start-ExtendedChest.cmd
+```
+
+On Linux:
+
+```bash
+./dist/ExtendedChest-linux/Start-ExtendedChest.sh
 ```
 
 The launcher uses a separate save directory:
@@ -117,15 +155,16 @@ The new item uses an ID unknown to vanilla Terraria. Do not open and resave worl
 Extended Chest with the vanilla client. Keep backups and initially use disposable test data.
 
 The mod uses a multiplayer protocol identifier distinct from vanilla. Clients and servers must use the same revision.
-This repository covers only the Windows client.
+Windows and Linux clients built from this repository use the same protocol revision.
 
 ## Publishing and license
 
 The original project code is released under the MIT License. Terraria and all related content remain the property of
 their respective owners. Read [LEGAL.md](LEGAL.md) before creating a release or fork.
 
-Do not upload `dist`, `.local`, Terraria executables, game DLLs, assets, decompiled sources, or archives generated from
-the local installation. See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution rules.
+Do not upload `dist`, `.local`, Windows or Linux Terraria executables, FNA/Mono/game DLLs, native libraries, assets,
+decompiled sources, or archives generated from the local installation. The repository and its releases must remain
+source-only. See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution rules.
 
 The applied IL changes are documented in [docs/PATCHES.md](docs/PATCHES.md).
 

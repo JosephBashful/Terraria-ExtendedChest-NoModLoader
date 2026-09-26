@@ -6,7 +6,10 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -16,9 +19,12 @@ jobs:
         run: dotnet build src/ExtendedChest.Patcher/ExtendedChest.Patcher.csproj --configuration Release
       - name: Build resource extractor
         run: dotnet build tools/ResourceExtractor/ResourceExtractor.csproj --configuration Release
-      - name: Ensure no Terraria binaries are tracked
+      - name: Enforce source-only repository
         shell: pwsh
         run: |
-          $forbidden = git ls-files | Where-Object { $_ -match '(?i)(^|/)(Terraria(Server)?\.exe|Content/)' }
-          if ($forbidden) { throw "Forbidden Terraria files tracked:`n$($forbidden -join "`n")" }
-
+          $forbidden = git ls-files | Where-Object {
+            $_ -match '(?i)(^|/)(Content|lib64)/' -or
+            $_ -match '(?i)(^|/)(Terraria(Server)?|steam_appid\.txt|monoconfig|monomachineconfig)$' -or
+            $_ -match '(?i)\.(exe|dll|so(\.[^/]+)?|bin\.x86_64)$'
+          }
+          if ($forbidden) { throw "Forbidden compiled or proprietary files tracked:`n$($forbidden -join "`n")" }
