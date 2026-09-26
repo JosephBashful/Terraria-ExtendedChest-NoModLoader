@@ -152,7 +152,7 @@ as the server.
 On a native Linux server, run from the repository root:
 
 ```bash
-bash scripts/Build-Server-Linux.sh "/opt/terraria/1458/Linux"
+bash scripts/Build-Server-Linux.sh "PATH_OF_SERVER"
 ```
 
 The script supports the official standalone Re-Logic dedicated-server package as well as a native Steam installation.
