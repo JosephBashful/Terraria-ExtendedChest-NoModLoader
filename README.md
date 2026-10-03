@@ -1,5 +1,6 @@
 # Extended Chest - Mod for Terraria 1.4.5.8 
 
+![Extended Chest Tier 2](https://i.imgur.com/m4T5vEW.png)
 While waiting for the official tmodloader support, I made this direct mod prototype.
 It works without tModLoader, adds two extended chest tiers, item-name searching, and integration
 with vanilla crafting from nearby chests. 
